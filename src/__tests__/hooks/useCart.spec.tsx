@@ -73,7 +73,7 @@ describe('useCart Hook', () => {
       id: 3,
       amount: 2,
     });
-    apiMock.onGet(`products/${productId}`).reply(200, {
+    apiMock.onGet(`products/${productId}`).reply(200, { 
       id: 3,
       title: 'Tênis Adidas Duramo Lite 2.0',
       price: 219.9,

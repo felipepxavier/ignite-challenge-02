@@ -31,10 +31,14 @@ const Home = (): JSX.Element => {
     return total
   }, {} as CartItemsAmount);
 
-  useEffect(() => {
-      api.get('/products').then(response => {
-        setProducts(response.data)
-      })
+  useEffect (() => {
+
+    async function tester () {
+      const response = await api.get('/products');
+      setProducts(response.data)
+    }
+    tester();
+      
   }, []);
 
   function handleAddProduct(id: number) {

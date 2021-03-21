@@ -30,50 +30,39 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
     }
     return [];
   });
+ 
+ 
 
-  useEffect(()=> {
-    localStorage.setItem('@RocketShoes:cart', JSON.stringify(cart));
-  }, [cart])
 
-  const getQtdAmount = async (id: number) => {
-    try {
-      const responseStock = await api.get('/stock');
-      const qtdStock = responseStock.data.find((item: Stock) => item.id === id);
-      return qtdStock.amount;
-    } catch (error) {
-      return undefined
-    }
-  }
 
   const addProduct = async (productId: number) => {
     try {
-     const qtdStock = await getQtdAmount(productId);
-      if(qtdStock !== undefined){
+     
+      const responseProduct = await api.get(`/products/${productId}`);
+      const isExisting = cart.find(item => item.id === productId);
+    
+          const responseStock = await api.get(`/stock/${productId}`);
+            if(responseStock.data.amount > 0 ){
 
-        if(qtdStock > 0){
-           const responseProduct = await api.get('/products');
-           const produtoCorrente = responseProduct.data.find((item: Product) => item.id === productId);
-           const isExisting = cart.find(item => item.id === productId);
-
-          if(isExisting !== undefined){
-
-            updateProductAmount({ productId, amount: isExisting.amount + 1 });
+              if (isExisting !== undefined) {
+                updateProductAmount({ productId, amount: isExisting.amount + 1 });
+              } else {
+                const novoCart = [...cart, {
+                  ...responseProduct.data,
+                  amount: 1
+                }];
+                setCart(novoCart);
+                localStorage.setItem('@RocketShoes:cart', JSON.stringify(novoCart));
+              }
+            } else {
+                toast.error('Quantidade solicitada fora de estoque');
+            }
         
-          } else {
-
-            const novoCart = [...cart, {
-              ...produtoCorrente,
-              amount: 1
-            }];
-            setCart(novoCart);
-          }
-        } else {
-          toast.error('Quantidade solicitada fora de estoque');
-        }
-      }
-    } catch {
+    } catch (error) {
       toast.error('Erro na adição do produto');
+      toast.error('Quantidade solicitada fora de estoque');
     }
+   
   };
 
   const removeProduct = (productId: number) => {
@@ -82,11 +71,12 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
       if(isExisting){
         const novoCart = cart.filter(item => item.id !== productId);
         setCart(novoCart);
+        localStorage.setItem('@RocketShoes:cart', JSON.stringify(novoCart));
       } else {
         throw new Error();
       }
     } catch {
-      toast.error('Erro na remoção do produto.');
+      toast.error('Erro na remoção do produto');
     }
   };
 
@@ -96,22 +86,22 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
   }: UpdateProductAmount) => {
 
     try {
-      const qtdStock = await getQtdAmount(productId);
-      if(amount <= qtdStock ){
-        const novoCart = cart.map(item => {
-          if(item.id === productId){
-            return {
-              ...item,
-              amount
+      const responseStock = await api.get(`/stock/${productId}`);
+        if(amount !== 0 && amount <= responseStock.data.amount){
+          const novoCart = cart.map(item => {
+            if(item.id === productId){
+              return {
+                ...item,
+                amount
+              }
             }
-          }
-          return item;
-        }) 
-        setCart(novoCart);
-
-      } else {
-        toast.error('Quantidade solicitada fora de estoque');
-      }
+            return item;
+          }) 
+          setCart(novoCart);
+          localStorage.setItem('@RocketShoes:cart', JSON.stringify(novoCart));
+        } else {
+          toast.error('Quantidade solicitada fora de estoque');
+        }
       
     } catch {
       toast.error('Erro na alteração de quantidade do produto');
