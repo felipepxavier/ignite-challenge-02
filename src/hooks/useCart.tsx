@@ -37,30 +37,44 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
 
   const addProduct = async (productId: number) => {
     try {
-     
-      const responseProduct = await api.get(`/products/${productId}`);
-      const isExisting = cart.find(item => item.id === productId);
     
-          const responseStock = await api.get(`/stock/${productId}`);
-            if(responseStock.data.amount > 0 ){
+      const isExisting = cart.find(item => item.id === productId);
 
-              if (isExisting !== undefined) {
-                updateProductAmount({ productId, amount: isExisting.amount + 1 });
-              } else {
-                const novoCart = [...cart, {
-                  ...responseProduct.data,
-                  amount: 1
-                }];
-                setCart(novoCart);
-                localStorage.setItem('@RocketShoes:cart', JSON.stringify(novoCart));
+              if (!isExisting) {
+                const { data: product } = await api.get<Product>(`products/${productId}`)
+                const { data: stock } = await api.get<Stock>(`stock/${productId}`)
+
+                if (stock.amount > 0) {
+                  setCart([...cart, { ...product, amount: 1 }])
+                    localStorage.setItem('@RocketShoes:cart', 
+                    JSON.stringify([...cart, { ...product, amount: 1 }])
+                  )
+                  return;
+                }
+  
+              } 
+
+              if (isExisting) {
+                const { data: stock } = await api.get(`stock/${productId}`)
+                if (stock.amount > isExisting.amount) {
+    
+                  const updatedCart = cart.map(item => item.id === productId ? {
+                    ...item,
+                    amount: item.amount + 1
+                  } : item)
+
+                  setCart(updatedCart)
+                  localStorage.setItem('@RocketShoes:cart', JSON.stringify(updatedCart))
+                  return;
+
+                } else {
+                  toast.error('Quantidade solicitada fora de estoque')
+                }
               }
-            } else {
-                toast.error('Quantidade solicitada fora de estoque');
-            }
-        
+              
     } catch (error) {
       toast.error('Erro na adição do produto');
-      toast.error('Quantidade solicitada fora de estoque');
+    
     }
    
   };
